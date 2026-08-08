@@ -55,3 +55,10 @@ class SQLiteRepository:
         with self._lock:
             rows = self.conn.execute("SELECT * FROM tasks").fetchall()
             return [dict(row) for row in rows]
+
+    def get_by_id(self, task_id):
+        with self._lock:
+            row = self.conn.execute(
+                "SELECT * FROM tasks WHERE id = ?", (task_id,)
+            ).fetchone()
+            return dict(row) if row else None
