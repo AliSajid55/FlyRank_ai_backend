@@ -7,7 +7,7 @@ app = FastAPI()
 repo = SQLiteRepository()
 
 class Item(BaseModel):
-    title: str
+    title: str | None = None
     done: bool = False
 
 @app.get("/")
@@ -20,8 +20,11 @@ def health():
 
 @app.post("/tasks")
 def create_item(item: Item):
-    saved_item = repo.add(item.model_dump()) # Repo use karein
-    return {"message": "Item added successfully", "item": saved_item}
+    title = (item.title or "").strip()
+    if not title:
+        return JSONResponse(status_code=400, content={"error": "Title is required"})
+    saved_item = repo.add({"title": title, "done": item.done})
+    return JSONResponse(status_code=201, content=saved_item)
 
 @app.get("/tasks")
 def get_items():
