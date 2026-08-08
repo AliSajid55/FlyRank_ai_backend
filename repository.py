@@ -62,3 +62,31 @@ class SQLiteRepository:
                 "SELECT * FROM tasks WHERE id = ?", (task_id,)
             ).fetchone()
             return dict(row) if row else None
+
+    def update(self, task_id, item_dict):
+        with self._lock:
+            row = self.conn.execute(
+                "SELECT * FROM tasks WHERE id = ?", (task_id,)
+            ).fetchone()
+            if row is None:
+                return None
+            self.conn.execute(
+                "UPDATE tasks SET title = ?, done = ? WHERE id = ?",
+                (item_dict["title"], int(item_dict.get("done", False)), task_id),
+            )
+            self.conn.commit()
+            updated = self.conn.execute(
+                "SELECT * FROM tasks WHERE id = ?", (task_id,)
+            ).fetchone()
+            return dict(updated)
+
+    def delete(self, task_id):
+        with self._lock:
+            row = self.conn.execute(
+                "SELECT * FROM tasks WHERE id = ?", (task_id,)
+            ).fetchone()
+            if row is None:
+                return False
+            self.conn.execute("DELETE FROM tasks WHERE id = ?", (task_id,))
+            self.conn.commit()
+            return True
