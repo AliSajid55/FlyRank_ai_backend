@@ -15,6 +15,10 @@ We chose **SQLite** for this project because:
 - The `tasks` table and the seed data (3 example tasks) are also created/inserted automatically on startup. Seeding only runs when the table is empty, so restarts never duplicate the tasks.
 - The file is listed in **`.gitignore`**, so it is never committed to the repository. Every fresh clone starts clean — the database is not created from someone's commit, it is created by the app itself when it runs. (Git stores code, not data.)
 
+## A Note on Changing the Table Structure (Database Migrations)
+
+When we added the `created_at` and `updated_at` columns, `CREATE TABLE IF NOT EXISTS` alone was not enough — the table already existed with real data, so we had to write extra migration code (`ALTER TABLE` + backfilling the old rows) to safely change its shape. It was a good reminder of why real-world development relies on Database Migrations: schema changes are handled explicitly and safely, so existing data is never lost and every environment (including fresh clones) ends up with the correct structure.
+
 ## How to run the project
 
 Run this command from the project directory:
