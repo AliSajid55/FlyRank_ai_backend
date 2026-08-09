@@ -1,5 +1,51 @@
 # FlyRank AI Backend
 
+## Why SQLite?
+
+We chose **SQLite** for this project because:
+
+- **Single file** — The entire database lives in one small file (`tasks.db`). There is no separate database server (like MySQL or PostgreSQL) to install or run. If Python is on the machine, SQLite is already there — `sqlite3` ships with Python, so nothing extra needs to be installed.
+- **Data survives restarts** — In Assignment 1, data was stored in memory, so every time the server restarted, all tasks disappeared. Now data is saved to disk, so the same tasks come back after a restart. That single change — memory to disk — is what turns this project from a demo into something real.
+- **Lightweight and fast** — It is perfect for small projects, learning, and single-user applications. When you need very large data or multiple users/servers, you can later move to a bigger database like Postgres.
+
+## Where is the database file?
+
+- The database file **`tasks.db`** lives in the project's **root directory**.
+- It is **created automatically** the first time the app runs — when the code calls `sqlite3.connect("tasks.db")` and the file does not exist yet, SQLite creates it on its own.
+- The `tasks` table and the seed data (3 example tasks) are also created/inserted automatically on startup. Seeding only runs when the table is empty, so restarts never duplicate the tasks.
+- The file is listed in **`.gitignore`**, so it is never committed to the repository. Every fresh clone starts clean — the database is not created from someone's commit, it is created by the app itself when it runs. (Git stores code, not data.)
+
+## How to run the project
+
+Run this command from the project directory:
+
+```
+uvicorn main:app --reload
+```
+
+- `main:app` — the `app` (FastAPI instance) inside the `main.py` file.
+- `--reload` — the server restarts automatically whenever you change the code (handy for development).
+- Once the server is running:
+  - API base: `http://127.0.0.1:8000`
+  - Swagger UI (interactive docs): `http://127.0.0.1:8000/docs`
+  - Health check: `http://127.0.0.1:8000/health`
+
+## API Endpoints
+
+| Method | Endpoint          | Purpose                       | Success Response |
+|--------|-------------------|-------------------------------|------------------|
+| POST   | `/tasks`          | Create a new task             | `201 Created`    |
+| GET    | `/tasks`          | List all tasks                | `200 OK`         |
+| GET    | `/tasks/{id}`     | Fetch a single task by id     | `200 OK`         |
+| PUT    | `/tasks/{id}`     | Update a task                 | `200 OK`         |
+| DELETE | `/tasks/{id}`     | Delete a task                 | `204 No Content` |
+
+## Screenshot
+![Database Screenshot](screenshot.png)
+
+
+# SQL Query: Stage 4
+
 1. SELECT * FROM tasks;
 id,title,done
 1,Learn FastAPI,0
@@ -15,51 +61,3 @@ COUNT(*)
 3
 
 ---
-
-## Why SQLite?
-
-Humne is project mein **SQLite** is liye choose kiya kyunki:
-
-- **Single file** — poori database sirf ek chhota sa file hai (`tasks.db`). Koi alag database server (jaise MySQL ya PostgreSQL) install ya run karne ki zaroorat nahi hai. Jo machine pe Python hai, usi pe SQLite chalta hai — `sqlite3` Python ke saath built-in aata hai, is liye kuch extra install nahi karna parta.
-- **Data restart ke baad bhi mehfooz** — pehle (Assignment 1) data memory mein store hota tha, is liye server restart karte hi sab tasks khatam ho jate the. Ab data disk par save hota hai, is liye server restart karne ke baad bhi wohi tasks wapas milte hain. Yehi woh change hai jo project ko demo se real application banata hai.
-- **Lightweight aur fast** — chhote projects, learning aur single-user applications ke liye perfect hai. Jahan bahut bada data ya multiple users/servers ki zaroorat ho, wahan aage ja ke Postgres jaise bade database pe shift kiya ja sakta hai.
-
-## Where is the database file?
-
-- Database file **`tasks.db`** project ki **root directory** mein hoti hai.
-- Ye file **khud ba khud banti hai** jab app pehli baar run hoti hai — jab code `sqlite3.connect("tasks.db")` karta hai aur file exist nahi hoti, SQLite usay automatically create kar deta hai.
-- Table (`tasks`) aur seed data (3 example tasks) bhi app ke startup par automatically ban/daale jate hain — seed sirf tab chalta hai jab table khali ho, is liye restart karne se tasks duplicate nahi hote.
-- Ye file **`.gitignore`** mein add ki gayi hai, is liye ye git repository mein commit nahi hoti. Har naye clone par fresh start milta hai — DB kisi ke commit karne se nahi banti, balki app chalate hi khud ban jati hai. (Git mein sirf code jata hai, data nahi.)
-
-## How to run the project
-
-Server start karne ke liye project directory mein ye command chalayein:
-
-```
-uvicorn main:app --reload
-```
-
-- `main:app` — `main.py` file ke andar wala `app` (FastAPI instance).
-- `--reload` — jab bhi code mein change karo, server khud restart ho jata hai (development ke liye asaan).
-- Server start hone ke baad:
-  - API base: `http://127.0.0.1:8000`
-  - Swagger UI (interactive docs): `http://127.0.0.1:8000/docs`
-  - Health check: `http://127.0.0.1:8000/health`
-
-## API Endpoints
-
-| Method | Endpoint          | Purpose                            | Success Response |
-|--------|-------------------|------------------------------------|------------------|
-| POST   | `/tasks`          | Naya task create karein            | `201 Created`    |
-| GET    | `/tasks`          | Saare tasks list karein            | `200 OK`         |
-| GET    | `/tasks/{id}`     | Ek specific task id se karein      | `200 OK`         |
-| PUT    | `/tasks/{id}`     | Kisi task ko update karein         | `200 OK`         |
-| DELETE | `/tasks/{id}`     | Kisi task ko delete karein         | `204 No Content` |
-
-## Screenshot
-
-Neeche DB Browser ya VS Code SQLite extension mein khuli hui `tasks.db` ki tasveer hai (3 tasks wali table):
-
-![Database Screenshot](screenshot.png)
-
-> Note: `screenshot.png` naam ki file root directory mein rakh dein, ya is link ko apne screenshot ke naam se replace kar dein.
