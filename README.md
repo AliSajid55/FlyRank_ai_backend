@@ -19,6 +19,34 @@ We chose **SQLite** for this project because:
 
 When we added the `created_at` and `updated_at` columns, `CREATE TABLE IF NOT EXISTS` alone was not enough — the table already existed with real data, so we had to write extra migration code (`ALTER TABLE` + backfilling the old rows) to safely change its shape. It was a good reminder of why real-world development relies on Database Migrations: schema changes are handled explicitly and safely, so existing data is never lost and every environment (including fresh clones) ends up with the correct structure.
 
+## Database (PostgreSQL in Docker)
+
+This project now uses a real PostgreSQL server running inside a Docker container. Start it with:
+
+```
+docker run --name taskdb -e POSTGRES_PASSWORD=dev -e POSTGRES_DB=tasks -p 5432:5432 -v taskdata:/var/lib/postgresql/data -d postgres:17
+```
+
+What each part does:
+
+- `--name taskdb` — the container gets a fixed name, so we can refer to it easily.
+- `-e POSTGRES_PASSWORD=dev` — the database superuser password (for local development only).
+- `-e POSTGRES_DB=tasks` — a database named `tasks` is created automatically on first start.
+- `-p 5432:5432` — maps port 5432 of the container to port 5432 on your machine, so the app can reach `localhost:5432`.
+- `-v taskdata:/var/lib/postgresql/data` — a named volume, so the data survives even if the container is removed and re-created.
+- `-d postgres:17` — runs in the background from the official Postgres image (version pinned to 17 for a stable data layout).
+
+Useful commands:
+
+```
+docker ps                                      # is the container running?
+docker exec -it taskdb psql -U postgres -d tasks   # open a SQL prompt inside the container (\dt lists tables, \q quits)
+docker stop taskdb && docker start taskdb      # stop / start again (data stays)
+docker rm -f taskdb                            # remove container (volume keeps the data)
+```
+
+> Note: The latest `postgres` image (18+) changed its internal data folder layout, so this project pins version 17 (`postgres:17`) to match the volume path used above.
+
 ## How to run the project
 
 Run this command from the project directory:

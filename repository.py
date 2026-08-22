@@ -10,7 +10,6 @@ SEED_TASKS = [
     ("Switch to SQLite", 0),
 ]
 
-
 def _now():
     return datetime.now().isoformat(timespec="seconds")
 
