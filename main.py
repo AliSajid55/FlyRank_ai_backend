@@ -1,10 +1,10 @@
 from fastapi import FastAPI
 from fastapi.responses import JSONResponse, Response
 from pydantic import BaseModel
-from repository import SQLiteRepository
+from repository import PostgresRepository
 
 app = FastAPI()
-repo = SQLiteRepository()
+repo = PostgresRepository()
 
 class Item(BaseModel):
     title: str | None = None
