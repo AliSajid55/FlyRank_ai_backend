@@ -1,66 +1,50 @@
 # FlyRank AI Backend
 
-## Why SQLite?
+A task-management REST API built with **FastAPI**, backed by a real **PostgreSQL** database, fully containerized with **Docker Compose**. One command starts everything — the API and its own database server.
 
-We chose **SQLite** for this project because:
+## What is this?
 
-- **Single file** — The entire database lives in one small file (`tasks.db`). There is no separate database server (like MySQL or PostgreSQL) to install or run. If Python is on the machine, SQLite is already there — `sqlite3` ships with Python, so nothing extra needs to be installed.
-- **Data survives restarts** — In Assignment 1, data was stored in memory, so every time the server restarted, all tasks disappeared. Now data is saved to disk, so the same tasks come back after a restart. That single change — memory to disk — is what turns this project from a demo into something real.
-- **Lightweight and fast** — It is perfect for small projects, learning, and single-user applications. When you need very large data or multiple users/servers, you can later move to a bigger database like Postgres.
+- A complete CRUD API for tasks: create, list, fetch one, update, delete.
+- The storage layer has evolved over three stages, while the API itself stayed the same:
+  1. **Assignment 1** — in-memory Python list (data died on every restart)
+  2. **Assignment 2** — SQLite file on disk (`tasks.db`)
+  3. **This stage** — PostgreSQL running as a proper database server inside Docker
+- On startup the app connects using `DATABASE_URL`, creates the `tasks` table if it does not exist, and seeds 3 example tasks — but only if the table is empty, so restarts never duplicate them.
 
-## Where is the database file?
-
-- The database file **`tasks.db`** lives in the project's **root directory**.
-- It is **created automatically** the first time the app runs — when the code calls `sqlite3.connect("tasks.db")` and the file does not exist yet, SQLite creates it on its own.
-- The `tasks` table and the seed data (3 example tasks) are also created/inserted automatically on startup. Seeding only runs when the table is empty, so restarts never duplicate the tasks.
-- The file is listed in **`.gitignore`**, so it is never committed to the repository. Every fresh clone starts clean — the database is not created from someone's commit, it is created by the app itself when it runs. (Git stores code, not data.)
-
-## A Note on Changing the Table Structure (Database Migrations)
-
-When we added the `created_at` and `updated_at` columns, `CREATE TABLE IF NOT EXISTS` alone was not enough — the table already existed with real data, so we had to write extra migration code (`ALTER TABLE` + backfilling the old rows) to safely change its shape. It was a good reminder of why real-world development relies on Database Migrations: schema changes are handled explicitly and safely, so existing data is never lost and every environment (including fresh clones) ends up with the correct structure.
-
-## Database (PostgreSQL in Docker)
-
-This project now uses a real PostgreSQL server running inside a Docker container. Start it with:
+## Run everything with one command
 
 ```
-docker run --name taskdb -e POSTGRES_PASSWORD=dev -e POSTGRES_DB=tasks -p 5432:5432 -v taskdata:/var/lib/postgresql/data -d postgres:17
+docker compose up
 ```
 
-What each part does:
+(add `-d` to run in the background: `docker compose up -d`)
 
-- `--name taskdb` — the container gets a fixed name, so we can refer to it easily.
-- `-e POSTGRES_PASSWORD=dev` — the database superuser password (for local development only).
-- `-e POSTGRES_DB=tasks` — a database named `tasks` is created automatically on first start.
-- `-p 5432:5432` — maps port 5432 of the container to port 5432 on your machine, so the app can reach `localhost:5432`.
-- `-v taskdata:/var/lib/postgresql/data` — a named volume, so the data survives even if the container is removed and re-created.
-- `-d postgres:17` — runs in the background from the official Postgres image (version pinned to 17 for a stable data layout).
+What happens on the very first run:
 
-Useful commands:
+1. Builds the `api` image from the `Dockerfile`.
+2. Starts the `db` service (`postgres:17`) with a named volume, so data survives restarts.
+3. Waits until Postgres passes its health check, then starts the API.
+4. Creates the `tasks` table and seeds 3 example tasks (first run only).
 
-```
-docker ps                                      # is the container running?
-docker exec -it taskdb psql -U postgres -d tasks   # open a SQL prompt inside the container (\dt lists tables, \q quits)
-docker stop taskdb && docker start taskdb      # stop / start again (data stays)
-docker rm -f taskdb                            # remove container (volume keeps the data)
-```
+Once running:
 
-> Note: The latest `postgres` image (18+) changed its internal data folder layout, so this project pins version 17 (`postgres:17`) to match the volume path used above.
+- Swagger UI (interactive docs): http://localhost:8000/docs
+- API base: http://localhost:8000
+- Health check: http://localhost:8000/health
 
-## How to run the project
+To stop: `docker compose down` — containers are removed but the volume keeps your data. Start again with `docker compose up` and everything is still there.
 
-Run this command from the project directory:
+## Environment variables
+
+The app reads its database connection from `DATABASE_URL`. Copy `.env.example` to `.env` and fill in real values:
 
 ```
-uvicorn main:app --reload
+DATABASE_URL=postgres://user:password@localhost:5433/dbname
 ```
 
-- `main:app` — the `app` (FastAPI instance) inside the `main.py` file.
-- `--reload` — the server restarts automatically whenever you change the code (handy for development).
-- Once the server is running:
-  - API base: `http://127.0.0.1:8000`
-  - Swagger UI (interactive docs): `http://127.0.0.1:8000/docs`
-  - Health check: `http://127.0.0.1:8000/health`
+- `.env` holds real secrets and is **git-ignored** — it is never committed.
+- `.env.example` holds the same keys with placeholder values and **is** committed, so anyone cloning the repo knows which variables to set.
+- Inside the Compose network the API reaches the database by service name (`db`, port 5432) — this is set automatically in `compose.yaml`. From your host machine (GUI tools, psql) use `localhost:5433`.
 
 ## API Endpoints
 
@@ -72,9 +56,61 @@ uvicorn main:app --reload
 | PUT    | `/tasks/{id}`     | Update a task                 | `200 OK`         |
 | DELETE | `/tasks/{id}`     | Delete a task                 | `204 No Content` |
 
-## Screenshot
+Validation: missing or empty `title` returns `400 Bad Request`; unknown ids return `404 Not Found` with `{ "error": "Task not found" }`.
+
+## Example request
+
+```
+$ curl -i http://localhost:8000/tasks
+HTTP/1.1 200 OK
+date: Mon, 24 Aug 2026 02:50:29 GMT
+server: uvicorn
+content-length: 731
+content-type: application/json
+
+{"items":[{"id":1,"title":"Learn FastAPI","done":false,"created_at":"2026-08-23T12:03:09.722062+00:00","updated_at":"2026-08-23T12:03:09.722062+00:00"},{"id":2,"title":"Build a CRUD API","done":true,"created_at":"2026-08-23T12:03:09.722062+00:00","updated_at":"2026-08-23T12:03:09.722062+00:00"},{"id":3,"title":"Switch to SQLite","done":false,"created_at":"2026-08-23T12:03:09.722062+00:00","updated_at":"2026-08-23T12:03:09.722062+00:00"},{"id":4,"title":"Compose task one","done":false,"created_at":"2026-08-23T12:03:49.780096+00:00","updated_at":"2026-08-23T12:03:49.780109+00:00"},{"id":5,"title":"Compose task two","done":true,"created_at":"2026-08-23T12:03:49.989809+00:00","updated_at":"2026-08-23T12:03:49.989827+00:00"}]}
+```
+
+## Looking at the data
+
+Open a SQL prompt straight inside the database container:
+
+```
+docker exec -it flyrank_ai_backend-db-1 psql -U postgres -d tasks
+```
+
+`\dt` — list of relations:
+
+```
+         List of relations
+ Schema | Name  | Type  |  Owner
+--------+-------+-------+----------
+ public | tasks | table | postgres
+(1 row)
+```
+
+`SELECT id, title, done, created_at FROM tasks ORDER BY id;`
+
+```
+ id |      title       | done |          created_at
+----+------------------+------+-------------------------------
+  1 | Learn FastAPI    | f    | 2026-08-23 12:03:09.722062+00
+  2 | Build a CRUD API | t    | 2026-08-23 12:03:09.722062+00
+  3 | Switch to SQLite | f    | 2026-08-23 12:03:09.722062+00
+  4 | Compose task one | f    | 2026-08-23 12:03:49.780096+00
+  5 | Compose task two | t    | 2026-08-23 12:03:49.989809+00
+(5 rows)
+```
+
 ![Database Screenshot](screenshot.png)
 
+> Note: replace `screenshot.png` with a fresh screenshot of the Postgres `tasks` table opened in DBeaver / pgAdmin / TablePlus / a VS Code database extension (connect with host `localhost`, port `5433`, user `postgres`, password `dev`, database `tasks`).
+
+## A Note on Changing the Table Structure (Database Migrations)
+
+When we added the `created_at` and `updated_at` columns, `CREATE TABLE IF NOT EXISTS` alone was not enough — the table already existed with real data, so we had to write extra migration code (`ALTER TABLE` + backfilling the old rows) to safely change its shape. It was a good reminder of why real-world development relies on Database Migrations: schema changes are handled explicitly and safely, so existing data is never lost and every environment ends up with the correct structure.
+
+---
 
 # SQL Query: Stage 4
 
