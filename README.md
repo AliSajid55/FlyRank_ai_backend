@@ -104,7 +104,7 @@ docker exec -it flyrank_ai_backend-db-1 psql -U postgres -d tasks
 
 ![Database Screenshot](screenshot.png)
 
-> Note: replace `screenshot.png` with a fresh screenshot of the Postgres `tasks` table opened in DBeaver / pgAdmin / TablePlus / a VS Code database extension (connect with host `localhost`, port `5433`, user `postgres`, password `dev`, database `tasks`).
+>(connect with host `localhost`, port `5433`, user `postgres`, password `dev`, database `tasks`).
 
 ## A Note on Changing the Table Structure (Database Migrations)
 
