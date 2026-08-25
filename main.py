@@ -1,9 +1,11 @@
 from fastapi import FastAPI
 from fastapi.responses import JSONResponse, Response
 from pydantic import BaseModel
+from auth import router as auth_router
 from repository import PostgresRepository
 
 app = FastAPI()
+app.include_router(auth_router)
 repo = PostgresRepository()
 
 class Item(BaseModel):
