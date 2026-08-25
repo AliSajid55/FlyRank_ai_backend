@@ -1,4 +1,4 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse, Response
 from pydantic import BaseModel
 from auth import router as auth_router
@@ -19,6 +19,18 @@ def root():
 @app.get("/health")
 def health():
     return {"status": "Everything is working fine!"}
+
+@app.get("/public/info")
+def public_info():
+    return {"message": "Welcome stranger! This info is public."}
+
+@app.get("/protected/profile")
+def protected_profile(request: Request):
+    auth_header = request.headers.get("authorization", "")
+    if not auth_header.startswith("Bearer ") or len(auth_header.split()) < 2:
+        return JSONResponse(status_code=401, content={"error": "Access token required"})
+    token = auth_header.split()[1]
+    return {"token": token}
 
 @app.post("/tasks")
 def create_item(item: Item):
