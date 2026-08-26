@@ -3,6 +3,7 @@ from fastapi.responses import JSONResponse, Response
 from pydantic import BaseModel
 from auth import router as auth_router
 from repository import PostgresRepository
+from supabase_client import supabase
 
 app = FastAPI()
 app.include_router(auth_router)
@@ -30,7 +31,20 @@ def protected_profile(request: Request):
     if not auth_header.startswith("Bearer ") or len(auth_header.split()) < 2:
         return JSONResponse(status_code=401, content={"error": "Access token required"})
     token = auth_header.split()[1]
-    return {"token": token}
+    try:
+        resp = supabase.auth.get_user(token)
+    except Exception:
+        return JSONResponse(status_code=401, content={"error": "Invalid or expired token"})
+    if resp is None or resp.user is None:
+        return JSONResponse(status_code=401, content={"error": "Invalid or expired token"})
+    user = resp.user
+    if user is None:
+        return JSONResponse(status_code=401, content={"error": "Invalid or expired token"})
+    return {
+        "id": user.id,
+        "email": user.email,
+        "created_at": user.created_at,
+    }
 
 @app.post("/tasks")
 def create_item(item: Item):
