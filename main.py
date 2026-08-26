@@ -1,9 +1,9 @@
-from fastapi import FastAPI, Request
+from fastapi import Depends, FastAPI
 from fastapi.responses import JSONResponse, Response
 from pydantic import BaseModel
 from auth import router as auth_router
+from dependencies import get_current_user
 from repository import PostgresRepository
-from supabase_client import supabase
 
 app = FastAPI()
 app.include_router(auth_router)
@@ -26,25 +26,13 @@ def public_info():
     return {"message": "Welcome stranger! This info is public."}
 
 @app.get("/protected/profile")
-def protected_profile(request: Request):
-    auth_header = request.headers.get("authorization", "")
-    if not auth_header.startswith("Bearer ") or len(auth_header.split()) < 2:
-        return JSONResponse(status_code=401, content={"error": "Access token required"})
-    token = auth_header.split()[1]
-    try:
-        resp = supabase.auth.get_user(token)
-    except Exception:
-        return JSONResponse(status_code=401, content={"error": "Invalid or expired token"})
-    if resp is None or resp.user is None:
-        return JSONResponse(status_code=401, content={"error": "Invalid or expired token"})
-    user = resp.user
-    if user is None:
-        return JSONResponse(status_code=401, content={"error": "Invalid or expired token"})
-    return {
-        "id": user.id,
-        "email": user.email,
-        "created_at": user.created_at,
-    }
+def protected_profile(user: dict = Depends(get_current_user)):
+    return user
+
+
+@app.get("/protected/dashboard")
+def protected_dashboard(user: dict = Depends(get_current_user)):
+    return {"message": f"Welcome to your dashboard, {user['email']}!", "user": user}
 
 @app.post("/tasks")
 def create_item(item: Item):
