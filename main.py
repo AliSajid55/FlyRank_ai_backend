@@ -2,7 +2,7 @@ from fastapi import Depends, FastAPI
 from fastapi.responses import JSONResponse, Response
 from pydantic import BaseModel
 from auth import router as auth_router
-from dependencies import get_current_user
+from dependencies import get_current_user, security
 from repository import PostgresRepository
 
 app = FastAPI()
@@ -25,12 +25,12 @@ def health():
 def public_info():
     return {"message": "Welcome stranger! This info is public."}
 
-@app.get("/protected/profile")
+@app.get("/protected/profile", dependencies=[Depends(security)])
 def protected_profile(user: dict = Depends(get_current_user)):
     return user
 
 
-@app.get("/protected/dashboard")
+@app.get("/protected/dashboard", dependencies=[Depends(security)])
 def protected_dashboard(user: dict = Depends(get_current_user)):
     return {"message": f"Welcome to your dashboard, {user['email']}!", "user": user}
 

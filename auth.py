@@ -3,7 +3,7 @@ from pydantic import BaseModel
 from supabase_auth.errors import AuthApiError
 from fastapi.responses import JSONResponse, Response
 
-from dependencies import get_current_user
+from dependencies import get_current_user, security
 from supabase_client import supabase
 
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -62,7 +62,7 @@ def login(body: AuthRequest):
     }
 
 
-@router.post("/logout", status_code=204)
+@router.post("/logout", status_code=204, dependencies=[Depends(security)])
 def logout(user: dict = Depends(get_current_user)):
     supabase.auth.sign_out()
     return Response(status_code=204)
